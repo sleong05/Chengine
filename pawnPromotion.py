@@ -23,16 +23,16 @@ class promotionDialogue():
         self.team = team
         team = "black" if team == BLACK else "white"
 
-        img = py.image.load(f"pieceIcons/{team}Rook.png").convert_alpha()
+        img = py.image.load(f"Chengine/pieceIcons/{team}Rook.png").convert_alpha()
         self.promotionRook = py.transform.scale(img, (TILE_SIZE*TILE_SCALING, TILE_SIZE*TILE_SCALING))
 
-        img = py.image.load(f"pieceIcons/{team}Knight.png").convert_alpha()
+        img = py.image.load(f"Chengine/pieceIcons/{team}Knight.png").convert_alpha()
         self.promotionKnight = py.transform.scale(img, (TILE_SIZE*TILE_SCALING, TILE_SIZE*TILE_SCALING))
 
-        img = py.image.load(f"pieceIcons/{team}Bishop.png").convert_alpha()
+        img = py.image.load(f"Chengine/pieceIcons/{team}Bishop.png").convert_alpha()
         self.promotionBishop = py.transform.scale(img, (TILE_SIZE*TILE_SCALING, TILE_SIZE*TILE_SCALING))
 
-        img = py.image.load(f"pieceIcons/{team}Queen.png").convert_alpha()
+        img = py.image.load(f"Chengine/pieceIcons/{team}Queen.png").convert_alpha()
         self.promotionQueen = py.transform.scale(img, (TILE_SIZE*TILE_SCALING, TILE_SIZE*TILE_SCALING))
 
     def showDialogue(self) -> None:

@@ -11,7 +11,7 @@ class Piece:
             self.board = board
             self.hasMoved = False
             #load image
-            img = py.image.load(f"pieceIcons/black{piece}.png").convert_alpha() if self.color==BLACK else py.image.load(f"pieceIcons/white{piece}.png").convert_alpha()
+            img = py.image.load(f"Chengine/pieceIcons/black{piece}.png").convert_alpha() if self.color==BLACK else py.image.load(f"Chengine/pieceIcons/white{piece}.png").convert_alpha()
             self.image = py.transform.scale(img, (TILE_SIZE, TILE_SIZE))
             self.piece = piece
     

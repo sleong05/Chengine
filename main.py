@@ -3,12 +3,12 @@ import pygame
 from constants import *
 from board import Board
 from pawnPromotion import promotionDialogue
+import threading
 #init
 pygame.init()
 
 #Display
 screen = pygame.display.set_mode((SCREEN_HEIGHT, SCREEN_WIDTH))
-
 
 # initilize board
 board = Board(screen)
@@ -31,6 +31,8 @@ textRect = whiteWins.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
 drawTextRect = draw.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
 #
 pawnPromotion = promotionDialogue(screen, board.content)
+
+board.doFirstMove() #first move for white
 while not exit:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -40,13 +42,11 @@ while not exit:
                 board.drawBoard()
                 gameOver = board.click(event.pos)
             board.drawPieces()
-            pygame.display.update()
             #asks board if promotion is needed
             promotionNeeded, position, team = board.isPromotionNeeded()
             if promotionNeeded:
                 pawnPromotion.loadImages(team)
                 pawnPromotion.showDialogue()
-                pygame.display.update()
                 #wait till response is picked
                 optionSelected = False
                 while not optionSelected:
@@ -60,27 +60,28 @@ while not exit:
                                 clickPosition = event.pos
                                 optionSelected = pawnPromotion.selectOption(clickPosition, position)
                                 board.drawBoard()
+                    pygame.display.update()
 
             board.drawPieces()
-            pygame.display.update()
+
+            # engine turn
+            if board.isWhiteTurn():
+                board.engineMove()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_w:
                 board.highLightAttackTiles(WHITE)
             elif event.key == pygame.K_b:
                 board.highLightAttackTiles(BLACK)
             board.drawPieces()
-            pygame.display.update()
-
     if gameOver:
-
         if not board.isAKingInCheck():
             text = draw
             screen.blit(text, drawTextRect)
         else:
             text = whiteWins if gameOver==-1 else blackWins
             screen.blit(text, textRect)
-        pygame.display.update()
-        
+        break
+    pygame.display.update()
     # set FPS
     clock.tick(60)
 pygame.quit()
