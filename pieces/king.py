@@ -7,7 +7,7 @@ from typing import List
 class King(Piece):
     def __init__(self, screen: py.display, team: int, chessCoord: tuple[int, int], board: List[List[int]]) -> None:
         super().__init__(screen, team, chessCoord, board, "King")
-    
+        self.value = 0
     def getPossibleMoves(self) -> List[tuple[int, int]]:
         possibleLocations = []
         X = self.position[0]

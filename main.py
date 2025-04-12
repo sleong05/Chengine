@@ -64,9 +64,6 @@ while not exit:
 
             board.drawPieces()
 
-            # engine turn
-            if board.isWhiteTurn():
-                board.engineMove()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_w:
                 board.highLightAttackTiles(WHITE)
@@ -80,8 +77,13 @@ while not exit:
         else:
             text = whiteWins if gameOver==-1 else blackWins
             screen.blit(text, textRect)
-        break
-    pygame.display.update()
+
+    
+    # engine turn
+    if board.isWhiteTurn() and not gameOver:
+        board.engineMove()
+    if not gameOver:
+        pygame.display.update()
     # set FPS
     clock.tick(60)
 pygame.quit()

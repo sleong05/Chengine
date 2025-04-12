@@ -7,7 +7,7 @@ from typing import List
 class Pawn(Piece):
     def __init__(self, screen: pygame.Surface, team: int, chessCoord: tuple[int, int], board: List[List[int]]) -> None:
         super().__init__(screen, team, chessCoord, board, "Pawn")
-    
+        self.value = 1
     def getPossibleMoves(self) -> List[tuple[int, int]]:
         possibleLocations = []
         X = self.position[0]

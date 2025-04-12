@@ -60,4 +60,5 @@ class Piece:
                 if piece != 0 and piece.getPiece() == "King" and piece.getColor() == self.getColor():
                     return piece
     
-    
+    def getValue(self) -> int:
+        return self.value

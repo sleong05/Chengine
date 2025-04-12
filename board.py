@@ -87,7 +87,7 @@ class Board:
                 if piece != 0:
                     piece.draw()
 
-    def click(self, position: tuple[int, int]) -> int:
+    def click(self, position: tuple[int, int], highlightSquares=True) -> int:
         X = position[0]//TILE_SIZE
         Y = position[1]//TILE_SIZE
 
@@ -110,10 +110,10 @@ class Board:
                 self.content[x][y] = 0
                 self.playersTurn *= -1
 
-            #check for mate
-            hasAMove = self.checkForMate(piece) 
-            if not hasAMove: #if not moves a player has won or tied 
-                return self.playersTurn
+                #check for mate
+                hasAMove = self.checkForMate(self.selectedPiece) 
+                if not hasAMove: #if not moves a player has won or tied 
+                    return self.playersTurn
             self.resetVariables()
             return 0
         # clicked on a movecircle
@@ -140,17 +140,17 @@ class Board:
         
         # we have clicked on a piece
         piece = self.content[X][Y]
-
-        #Highlight square
-        if piece.getColor() != self.playersTurn:
-            self.drawRectAtSpot(X, Y, RED)
-            return 0
-        self.drawRectAtSpot(X, Y, HIGHLIGHT)
+        if highlightSquares:
+            #Highlight square
+            if piece.getColor() != self.playersTurn:
+                self.drawRectAtSpot(X, Y, RED)
+                return 0
+            self.drawRectAtSpot(X, Y, HIGHLIGHT)
 
         self.selectedPiece = piece
 
         #get possible moves and spawn circles on those squares
-        self.spawnCirclesOnPossibleMoves(piece)
+        self.spawnCirclesOnPossibleMoves(piece, highlightSquares)
         return 0
 
     def drawRectAtSpot(self, X: int, Y: int, color: tuple[int, int, int]) -> None:
@@ -196,12 +196,27 @@ class Board:
                     listOfPieces.append(tile)
         return listOfPieces
 
-    def spawnCirclesOnPossibleMoves(self, piece: Piece) -> None:
+    def spawnCirclesOnPossibleMoves(self, piece: Piece, showCircles=True) -> None:
         self.possibleMoveCircles = []
         self.possibleSpecialMoveCircles = []
         acutalMoveCircles = self.getAllLegalMoves(piece)
         
         # checks for castling
+        self.checkIfCanCastle(piece)
+        
+        # check for en passant
+
+        self.checkEnPassant(piece)
+        if showCircles:
+            for move in self.possibleSpecialMoveCircles:
+                x, y = map(lambda v: v*TILE_SIZE, move)
+                self.screen.blit(self.potentialSpecialMoveImage, (x,y))
+
+            for move in acutalMoveCircles:
+                x, y = map(lambda v: v*TILE_SIZE, move)
+                self.screen.blit(self.potentialMoveImage, (x,y))
+
+    def checkIfCanCastle(self, piece):
         if isinstance(piece, King):
             if (not piece.hasMoved):
                 x, y = piece.getPosition()
@@ -218,18 +233,6 @@ class Board:
                 if (isinstance(self.content[7][y], Rook) and not self.content[7][y].hasMoved):
                     tilesAlongCastlePathShort = [(x, y), (x+1, y), (x+2, y)]
                     self.checkCastle(tilesAlongCastlePathShort, attackedSquares, x, y)
-        
-        # check for en passant
-
-        self.checkEnPassant(piece)
-        
-        for move in self.possibleSpecialMoveCircles:
-            x, y = map(lambda v: v*TILE_SIZE, move)
-            self.screen.blit(self.potentialSpecialMoveImage, (x,y))
-
-        for move in acutalMoveCircles:
-            x, y = map(lambda v: v*TILE_SIZE, move)
-            self.screen.blit(self.potentialMoveImage, (x,y))
 
     def checkEnPassant(self, piece):
         if isinstance(piece, Pawn) and self.pawnCanPassant != None:
@@ -279,7 +282,11 @@ class Board:
             #tiles are not attacked. tile spot is empty. tile spot is not the king itself
             if tile in attackedSquares or self.content[X][Y] != 0 and (X, Y) != (x, y):
                 return False
-            
+            #if long castle check that there is no knight
+            if X == 5:
+                knightStartingSpot = self.content[X+1][Y]
+                if knightStartingSpot != 0:
+                    return False
         self.possibleSpecialMoveCircles.append((X, Y))
         return True
         
@@ -392,21 +399,6 @@ class Board:
     def isWhiteTurn(self) -> int:
         return True if self.playersTurn == WHITE else False
 
-
-    def engineMove(self) -> None:
-        allPossibleMoves = []
-        whitePieces = self.getPieces(WHITE)
-
-        for piece in whitePieces:
-            allLegalMoves = self.getAllLegalMoves(piece)
-            for legalMove in allLegalMoves:
-                allPossibleMoves.append((piece, legalMove))
-
-        engineMoveThread = threading.Thread(target=self.doEngineMove, args=(allPossibleMoves,))
-        engineMoveThread.start()
-        self.playersTurn *= -1
-
-
     def getPieces(self, team: int) -> list[Piece]:
         piecesOfTeam = []
         for row in self.content:
@@ -416,9 +408,45 @@ class Board:
 
         return piecesOfTeam
     
+    def engineMove(self) -> None:
+        allPossibleMoves = []
+        whitePieces = self.getPieces(WHITE)
+
+        for piece in whitePieces:
+            allLegalMoves = self.getAllLegalMoves(piece)
+            for legalMove in allLegalMoves:
+                allPossibleMoves.append((piece, legalMove))
+
+        #check castling
+        x, y = self.whiteKing.getPosition()
+        self.click((x*TILE_SIZE, y*TILE_SIZE), highlightSquares=False)
+        for move in self.possibleSpecialMoveCircles:
+            allPossibleMoves.append((self.whiteKing, move))
+        self.click((x*TILE_SIZE, y*TILE_SIZE), highlightSquares=False)
+    
+        engineMoveThread = threading.Thread(target=self.doEngineMove, args=(allPossibleMoves,))
+        engineMoveThread.start()
+        self.playersTurn *= -1
+
+    def doFirstMove(self) -> None:
+            firstMoves = []
+            ePawn = self.content[4][1]
+            e4 = (ePawn, (4, 3))
+
+            dPawn = self.content[3][1]
+            d4 = (dPawn, (3, 3))
+            
+            firstMoves.append(e4)
+            firstMoves.append(d4)
+
+            engineMoveThread = threading.Thread(target=self.doEngineMove, args=(firstMoves,))
+            engineMoveThread.start()
+            self.playersTurn *= -1
+    
     def doEngineMove(self, allPossibleMoves: list[tuple[Piece, tuple[int, int]]]) -> None:
         decidedMove = []
-        self.engineThread = threading.Thread(target=self.moveFinder.getBestMove, args=(self.content, self.playersTurn*-1, allPossibleMoves, decidedMove))
+        self.moveFinder.feedData(self.content, self.playersTurn*-1, allPossibleMoves, self.getAttackedTiles(WHITE),self.getAttackedTiles(BLACK))
+        self.engineThread = threading.Thread(target=self.moveFinder.getBestMove, args=(decidedMove,))
         self.engineThread.start()
         self.engineThread.join()
         #game is over
@@ -434,22 +462,12 @@ class Board:
         self.click((oldX*TILE_SIZE, oldY*TILE_SIZE))
         self.click((x*TILE_SIZE, y*TILE_SIZE))
         self.resetVariables()
+        #check if we need to promote a pawn
+        if isinstance(piece, Pawn) and y == 7:
+            self.content[x][y] = Queen(self.screen, WHITE, (x, y), self.content)
         #redraw
         self.drawBoard()
         self.drawRectAtSpot(x, y, HIGHLIGHT_ENGINE)
         self.drawPieces()
 
-    def doFirstMove(self) -> None:
-        firstMoves = []
-        ePawn = self.content[4][1]
-        e4 = (ePawn, (4, 3))
-
-        dPawn = self.content[3][1]
-        d4 = (dPawn, (3, 3))
-        
-        firstMoves.append(e4)
-        firstMoves.append(d4)
-
-        engineMoveThread = threading.Thread(target=self.doEngineMove, args=(firstMoves,))
-        engineMoveThread.start()
-        self.playersTurn *= -1
+    
