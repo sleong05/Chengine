@@ -1,3 +1,4 @@
+from constants import *
 from pieces import *
 from weights import *
 
@@ -23,6 +24,7 @@ class PieceTheorizer:
         self.oldX = oldX
         self.oldY = oldY
         self.board = board
+        self.team = piece.getColor()
     
 
         handler = self.piece_actions.get(type(piece))
@@ -50,19 +52,34 @@ class PieceTheorizer:
         #additionally we want to add some specific weight to some squares to encourage good gameplay
         #fianchetto 
         fianchettoRating = 0
-        if (self.newX, self.newY) == (1, 1) or (self.newX, self.newY) == (6, 1):
-            fianchettoRating += FIANCHETTO_VALUE
+        if self.team == WHITE:
+            if (self.newX, self.newY) == (1, 1) or (self.newX, self.newY) == (6, 1):
+                fianchettoRating += FIANCHETTO_VALUE
 
-        #usual bishop development locations (discourages blocking pawns as well)
-        standardSpotRating = 0
-        if (self.newX, self.newY) == (2, 3) or (self.newX, self.newY) == (1, 4) or (self.newX, self.newY) == (5, 3) or (self.newX, self.newY) == (6, 4):
-            standardSpotRating += STANDARD_BISHOP_SPOT
-            
+            #usual bishop development locations (discourages blocking pawns as well)
+            standardSpotRating = 0
+            if (self.newX, self.newY) == (2, 3) or (self.newX, self.newY) == (1, 4) or (self.newX, self.newY) == (5, 3) or (self.newX, self.newY) == (6, 4):
+                standardSpotRating += STANDARD_BISHOP_SPOT
+                
 
-        #encourage to develop off starting squre
-        notDevelopedRating = 0
-        if not bishop.hasMoved:
-            notDevelopedRating += BISHOP_NOT_MOVED
+            #encourage to develop off starting squre
+            notDevelopedRating = 0
+            if not bishop.hasMoved:
+                notDevelopedRating += BISHOP_NOT_MOVED
+        else:
+            if (self.newX, self.newY) == (1, 6) or (self.newX, self.newY) == (6, 6):
+                fianchettoRating += FIANCHETTO_VALUE
+
+            #usual bishop development locations (discourages blocking pawns as well)
+            standardSpotRating = 0
+            if (self.newX, self.newY) == (2, 4) or (self.newX, self.newY) == (1, 3) or (self.newX, self.newY) == (5, 4) or (self.newX, self.newY) == (6, 3):
+                standardSpotRating += STANDARD_BISHOP_SPOT
+                
+
+            #encourage to develop off starting squre
+            notDevelopedRating = 0
+            if not bishop.hasMoved:
+                notDevelopedRating += BISHOP_NOT_MOVED
 
         return changeRating + fianchettoRating + standardSpotRating + notDevelopedRating
 
@@ -100,18 +117,32 @@ class PieceTheorizer:
         initialMoveValue = 0
         pawnChainValue = 0
         if not pawn.hasMoved:
+            if self.team == WHITE:
             #checks for fianchetto pawn movement spot and if the bishop is still there
-            if (self.newX, self.newY) in (finachetto := {(1, 2), (6, 2)}) and (isinstance(self.board[self.oldX-1][self.oldY-1], Bishop) or isinstance(self.board[self.oldX+1][self.oldY-1], Bishop)):
-                print("YEP THATS A FIANCHETTO")
-                initialMoveValue += FIANCHETTO_VALUE
-            elif (self.newX, self.newY) in (central := {(2, 3), (3, 3), (4, 3)}):
-                initialMoveValue += CENTRAL_PAWN_VALUE
-            elif (self.newX, self.newY) in (outside := {(0, 3), (7, 3)}):
-                initialMoveValue += SIDE_PAWN_VALUE
+                if (self.newX, self.newY) in (finachetto := {(1, 2), (6, 2)}) and (isinstance(self.board[self.oldX-1][self.oldY-1], Bishop) or isinstance(self.board[self.oldX+1][self.oldY-1], Bishop)):
+
+                    initialMoveValue += FIANCHETTO_VALUE
+                elif (self.newX, self.newY) in (central := {(5, 3), (3, 3), (4, 3)}):
+                    initialMoveValue += CENTRAL_PAWN_VALUE
+                elif (self.newX, self.newY) in (outside := {(0, 3), (7, 3)}):
+                    initialMoveValue += SIDE_PAWN_VALUE
+            else:
+                #checks for fianchetto pawn movement spot and if the bishop is still there
+                if (self.newX, self.newY) in (finachetto := {(1, 5), (6, 5)}) and (isinstance(self.board[self.oldX-1][self.oldY+1], Bishop) or isinstance(self.board[self.oldX+1][self.oldY+1], Bishop)):
+                    initialMoveValue += FIANCHETTO_VALUE
+                elif (self.newX, self.newY) in (central := {(5, 4), (3, 4), (4, 4)}):
+                    initialMoveValue += CENTRAL_PAWN_VALUE
+                elif (self.newX, self.newY) in (outside := {(0, 4), (7, 4)}):
+                    initialMoveValue += SIDE_PAWN_VALUE
+
 
         #if i can make a chain of defensive pawns
-        spot1 = (self.newX+1, self.newY+1)
-        spot2 = (self.newX-1, self.newY+1)
+        if self.team == WHITE:
+            spot1 = (self.newX+1, self.newY+1)
+            spot2 = (self.newX-1, self.newY+1)
+        else:
+            spot1 = (self.newX+1, self.newY-1)
+            spot2 = (self.newX-1, self.newY-1)
         x1, y1 = spot1
         x2, y2 = spot2
 
@@ -123,7 +154,11 @@ class PieceTheorizer:
         #check if its a passed pawn
         passedPawn = True
         passedPawnValue = 0
-        for y in range(self.oldY+1, 7):
+        start = self.oldY+1 if self.team == WHITE else self.oldY -1
+        end = 7 if self.team == WHITE else 0
+        direction = 1 if self.team == WHITE else -1
+
+        for y in range(start, end, direction):
             #check left column
             if self.oldX != 0 and isinstance(self.board[self.oldX-1][y], Pawn): 
                 
@@ -150,7 +185,7 @@ class PieceTheorizer:
         promotionValue = 0
         if self.newY == 7:
             promotionValue += PAWN_PROMOTION
-        return initialMoveValue + pawnChainValue + passedPawnValue + promotionValue
+        return initialMoveValue + pawnChainValue + passedPawnValue + promotionValue + SLIGHT_PAWN_VALUE
 
     def handle_queen(self, queen):
         #TODO figure out what maeks queen moves good. it seems to respond ok so far

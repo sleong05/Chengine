@@ -23,12 +23,17 @@ class MoveFinder:
         self.board = board
         self.team = team
         self.possibleMoves = possibleMoves
-        self.whiteAttackTiles = whiteAttack
-        self.blackAttackTiles = blackAttack
+        #in the context of whiteattack/blackattack. white is always the player going
+        if team==WHITE:
+            self.whiteAttackTiles = whiteAttack
+            self.blackAttackTiles = blackAttack
+        else:
+            self.whiteAttackTiles = blackAttack
+            self.blackAttackTiles = whiteAttack
 
     def getBestMove(self, bestMoveContainer: list) -> tuple[Piece, tuple[int, int]]: 
         """ LOAD DATA BEFORE"""
-
+        print(f"Finding move for team: {self.team}")
         # SIMULATE THINKGING #TODO REMOVE LATER
         i = 0
         while i < 20000000:
@@ -42,23 +47,24 @@ class MoveFinder:
 
 
         fiveBestMoves = self.getFiveBestMoves()
-        bestMove = None
+        #bestMove = None
         bestMoveValue = -999999999
-        print("------Five Best--------")
+        #print("------Five Best--------")
         for move in fiveBestMoves:
             piece, position = move
-            print(f"{piece} at {piece.getPosition()} to {position}: score {self.weights[move]}")
+            #print(f"{piece} at {piece.getPosition()} to {position}: score {self.weights[move]}")
             if self.weights[move] > bestMoveValue:
                 bestMoveValue = self.weights[move]
-                bestMove = move
+                #bestMove = move
 
-        
-        bestMoveContainer.append(bestMove)
+        for bestMove in fiveBestMoves:
+            bestMoveContainer.append(bestMove)
+        #bestMoveContainer.append(bestMove)
 
     def getFiveBestMoves(self):
         fiveBestMoves = []
         for move in self.possibleMoves:
-            if len(fiveBestMoves) < 5:
+            if len(fiveBestMoves) < 2:
                 fiveBestMoves.append(move)
             else:
                 worstMoveWeight = 99999999
@@ -131,8 +137,8 @@ class MoveFinder:
         if self.board[x][y] != 0: #this is a capture and will be assessed elsewhere
             return 0
         if (x, y) in self.blackAttackTiles  and (x, y) in self.whiteAttackTiles: #TODO evaluate if this messses stuff
-            return MOVEINTODANGERTRUE+4 #basically a slight weight against just in general
-        return MOVEINTODANGERTRUE if (x, y) in self.blackAttackTiles else MOVEINTODANGERFALSE
+            return piece.getValue() * -1 -.5 #basically a slight weight against just in general
+        return piece.getValue() * -1 if (x, y) in self.blackAttackTiles else MOVEINTODANGERFALSE
 
     """ END WEIGTHING METHODS """
 
@@ -141,12 +147,5 @@ class MoveFinder:
         print(f" random move selected to be: {possibleMoves[ranNum]}")
         return [] if not possibleMoves else possibleMoves[ranNum]
 
-    def getPieces(self, team: int, board: list[list[Piece|int]]) -> list[Piece]: #depricate?
-        piecesOfTeam = []
-        for row in board:
-            for tile in row:
-                if isinstance(tile, Piece) and tile.getColor() == team:
-                    piecesOfTeam.append(tile)
-
-        return piecesOfTeam
+    
         

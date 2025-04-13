@@ -409,6 +409,13 @@ class Board:
         return piecesOfTeam
     
     def engineMove(self) -> None:
+        allPossibleMoves = self.getMovesForEngine()
+    
+        engineMoveThread = threading.Thread(target=self.doEngineMove, args=(allPossibleMoves,))
+        engineMoveThread.start()
+        self.playersTurn *= -1
+
+    def getMovesForEngine(self):
         allPossibleMoves = []
         whitePieces = self.getPieces(WHITE)
 
@@ -423,10 +430,7 @@ class Board:
         for move in self.possibleSpecialMoveCircles:
             allPossibleMoves.append((self.whiteKing, move))
         self.click((x*TILE_SIZE, y*TILE_SIZE), highlightSquares=False)
-    
-        engineMoveThread = threading.Thread(target=self.doEngineMove, args=(allPossibleMoves,))
-        engineMoveThread.start()
-        self.playersTurn *= -1
+        return allPossibleMoves
 
     def doFirstMove(self) -> None:
             firstMoves = []
@@ -444,23 +448,23 @@ class Board:
             self.playersTurn *= -1
     
     def doEngineMove(self, allPossibleMoves: list[tuple[Piece, tuple[int, int]]]) -> None:
-        decidedMove = []
-        self.moveFinder.feedData(self.content, self.playersTurn*-1, allPossibleMoves, self.getAttackedTiles(WHITE),self.getAttackedTiles(BLACK))
-        self.engineThread = threading.Thread(target=self.moveFinder.getBestMove, args=(decidedMove,))
-        self.engineThread.start()
-        self.engineThread.join()
+        decidedMoves = self.findMovesOfInterest(allPossibleMoves, WHITE)
         #game is over
-        if not decidedMove:
+        if not decidedMoves:
             return
+        
+        #TREE TIME
+        highestRankedMove = self.lookIntoFutureMoves(decidedMoves, 3, BLACK)
+        move, valuation = highestRankedMove
+        
         #once best move is found
-        move = decidedMove.pop()
         piece, position = move
         x, y = position
         oldX, oldY = piece.getPosition()
         #simulate move
         self.playersTurn *= -1
-        self.click((oldX*TILE_SIZE, oldY*TILE_SIZE))
-        self.click((x*TILE_SIZE, y*TILE_SIZE))
+        self.click((oldX*TILE_SIZE, oldY*TILE_SIZE), highlightSquares=False)
+        self.click((x*TILE_SIZE, y*TILE_SIZE), highlightSquares=False)
         self.resetVariables()
         #check if we need to promote a pawn
         if isinstance(piece, Pawn) and y == 7:
@@ -470,4 +474,78 @@ class Board:
         self.drawRectAtSpot(x, y, HIGHLIGHT_ENGINE)
         self.drawPieces()
 
+    def findMovesOfInterest(self, allPossibleMoves, player: int):
+        decidedMoves = []
+        self.moveFinder.feedData(self.content, player*-1, allPossibleMoves, self.getAttackedTiles(WHITE),self.getAttackedTiles(BLACK))
+        self.moveFinder.getBestMove(decidedMoves)
+        return decidedMoves
+    
+    def lookIntoFutureMoves(self, movesOfinterest: list[tuple[Piece, tuple[int, int]]], depth: int, player: int) -> tuple[tuple[Piece, tuple[int, int]], int]:
+        childrenValues = []
+        if depth==0:
+            print(f"DEPTH: {depth}")
+            for move in movesOfinterest:
+                childrenValues.append((move, self.staticEval()))
+        else:
+            for move in movesOfinterest:
+                print(f"DEPTH: {depth} looking at move {move}")
+                #data to remember
+                castle = False
+                piece, position = move
+                newX, newY = position
+                oldX, oldY = piece.getPosition()
+                pieceAtMove = self.content[newX][newY]
+                pieceHasMovedValue = piece.hasMoved
+                #do the move
+                if player == WHITE:
+                    self.playersTurn *= -1
+                self.click((oldX*TILE_SIZE, oldY*TILE_SIZE), highlightSquares=False)
+                self.drawBoard()
+                self.drawPieces()
+                self.click((newX*TILE_SIZE, newY*TILE_SIZE), highlightSquares=False)
+                self.drawBoard()
+                self.drawPieces()
+                #check if move was a castle
+                if isinstance(piece, King) and abs(newX - oldX) == 2:
+                    castle = True
+                #lookinto future
+                print(F"Diving Deeper")
+                interestingMoves = self.findMovesOfInterest(self.getMovesForEngine(), player)
+                childrenValues.append(self.lookIntoFutureMoves(interestingMoves, depth-1, player*-1))
+                # undo move
+                if castle:
+                    print("CASTLING")
+                    pass
+                else:
+                    self.movePiece(oldX, oldY, piece)
+                    self.content[newX][newY] = pieceAtMove
+                    piece.hasMoved = pieceHasMovedValue
+                    self.drawBoard()
+                    self.drawPieces()
+        print(f"RETRACING STEPS")
+        #min max values
+        bestChoiceValue = 9999999 if player == BLACK else -9999999
+        bestChild = None
+
+        for child in childrenValues:
+            value = child[1]
+            if player == WHITE:
+                if bestChoiceValue < value:
+                    bestChoiceValue = value
+                    bestChild = child
+            else:
+                if bestChoiceValue > value:
+                    bestChoiceValue = value
+                    bestChild = child
+
+        return bestChild
+    def staticEval(self) -> int:
+        score = 0
+
+        for row in self.content:
+            for tile in row:
+                if isinstance(tile, Piece):
+                    score += tile.getValue() if tile.getColor() == WHITE else tile.getValue() * -1
+        
+        return score
     
