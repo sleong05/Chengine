@@ -38,4 +38,16 @@ class Knight(Piece):
             if x in range(BOARD_SIZE) and y in range(BOARD_SIZE):
                 possibleLocations.append(self.getPositionToDraw((x, y)))
         return possibleLocations
-    
+
+    def getPossibleMovesInPosition(self, X: int, Y: int) -> list[tuple[int, int]]:
+        possibleLocations = []
+
+        #possiblePositions should be 8
+        possiblePositions = [(X+2, Y-1), (X+2, Y+1), (X-2, Y-1), (X-2, Y+1), (X+1, Y-2), (X+1, Y+2), (X-1, Y-2), (X-1, Y+2)]
+
+        for move in possiblePositions:
+            x = move[0]
+            y = move[1]
+            if x in range(BOARD_SIZE) and y in range(BOARD_SIZE):
+                possibleLocations.append(self.getPositionToDraw((x, y)))
+        return possibleLocations

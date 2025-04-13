@@ -82,8 +82,7 @@ while not exit:
     # engine turn
     if board.isWhiteTurn() and not gameOver:
         board.engineMove()
-    if not gameOver:
-        pygame.display.update()
+    pygame.display.update()
     # set FPS
     clock.tick(60)
 pygame.quit()

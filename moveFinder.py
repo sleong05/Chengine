@@ -101,7 +101,7 @@ class MoveFinder:
         
         #TODO
         #theory man
-        pieceEvaluation = self.pieceTheorizer.evaluatePiece(piece, x, y, curX, curY)
+        pieceEvaluation = self.pieceTheorizer.evaluatePiece(piece, x, y, curX, curY, self.board)
         
         score += pieceEvaluation
         return score
@@ -110,12 +110,15 @@ class MoveFinder:
 
     def underAttack(self, curX:int, curY:int, piece: Piece) -> int:
         """ returns a positive bias if attacked else negative """
+        #print(f"Evluating Piece {piece} at ({curX}, {curY})")
         if isinstance(piece, Pawn): # dont really care about pawns being attacked
-            return 0
+            return .5
         valueofPiece = piece.getValue()
         #piece is defended
         if (curX, curY) in self.whiteAttackTiles and (curX, curY) in self.blackAttackTiles:
-            return valueofPiece - 2 # is defended. just check if its actuall important
+            #print("isprotected returning ")
+            return valueofPiece - 2.5 # is defended. just check if its actuall important
+        #print(f"this is hanging time to run possibly if {(curX, curY) in self.blackAttackTiles}")
         return valueofPiece if (curX, curY) in self.blackAttackTiles else 0
 
     def canTakePiece(self, x:int, y:int, piece: Piece) -> int:
@@ -125,11 +128,11 @@ class MoveFinder:
             return 0
         #hanging piece case
         if (x, y) not in self.blackAttackTiles:
-            return self.board[x][y].getValue()
+            return self.board[x][y].getValue() + .5
         
         # trade case
         myWorth = piece.getValue()
-        enemyWorth = self.board[x][y].getValue() + 1
+        enemyWorth = self.board[x][y].getValue()
 
         # equal trade
         if myWorth == enemyWorth:
@@ -140,6 +143,8 @@ class MoveFinder:
         return diff #TODO ASSESS IF THIS A REASONABLE WAY TO DO IT
     
     def moveInDanger(self, x: int, y:int, piece:Piece) -> int:
+        if self.board[x][y] != 0: #this is a capture and will be assessed elsewhere
+            return 0
         if (x, y) in self.blackAttackTiles  and (x, y) in self.whiteAttackTiles: #TODO evaluate if this messses stuff
             return MOVEINTODANGERTRUE+4 #basically a slight weight against just in general
         return MOVEINTODANGERTRUE if (x, y) in self.blackAttackTiles else MOVEINTODANGERFALSE
