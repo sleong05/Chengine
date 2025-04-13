@@ -102,7 +102,7 @@ class MoveFinder:
         valueofPiece = piece.getValue()
         #piece is defended
         if (curX, curY) in self.whiteAttackTiles and (curX, curY) in self.blackAttackTiles: #TODO MUST FIX SO THAT CAN FIGURE OUT APPROPRIETE DANGER
-            return valueofPiece - 2 # is defended. just check if its actuall important
+            return valueofPiece - 1 # is defended. just check if its actuall important
         
         return valueofPiece if (curX, curY) in self.blackAttackTiles else 0
 

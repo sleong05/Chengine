@@ -13,13 +13,13 @@ MOVEINTODANGERFALSE = 0.1
 #MOVE THEORY
 
 #KING
-CASTLINGWEIGHT = 2
-KINGMOVE = - 0.5 #generally we dont want king to move
+CASTLINGWEIGHT = 1
+KINGMOVE = - 0.1 #generally we dont want king to move
 
 #BISHOP
 FIANCHETTO_VALUE = .3 #small boost to encourage fianchettoing
 STANDARD_BISHOP_SPOT = .2
-BISHOP_NOT_MOVED = .2
+BISHOP_NOT_MOVED = .3
 
 #ROOK
 ROOK_NOT_MOVED = -.5
@@ -37,4 +37,4 @@ PAWN_PROMOTION = 2
 KING_PAWN_VALUE = -.2
 
 #QUEEN
-QUEEN_NOT_MOVED = -.4
+QUEEN_NOT_MOVED = -.1
