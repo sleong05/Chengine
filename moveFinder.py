@@ -28,6 +28,12 @@ class MoveFinder:
 
     def getBestMove(self, bestMoveContainer: list) -> tuple[Piece, tuple[int, int]]: 
         """ LOAD DATA BEFORE"""
+
+        # SIMULATE THINKGING #TODO REMOVE LATER
+        i = 0
+        while i < 20000000:
+            i+=1
+
         self.weights = {}
         #assign weights
         for move in self.possibleMoves:
@@ -48,25 +54,6 @@ class MoveFinder:
 
         
         bestMoveContainer.append(bestMove)
-        #TODO actually think
-        #Static Position Checker Components
-
-        #Offensive Checkmate HIGHEST WEIGHT
-
-        #shoudl almost certainly review every check option
-
-        #Hanging Piece Taker HIGH weight
-        #Hanging Piece retreater HIGH weight -> Move piece away 
-        #Attacked Piece defender HIGH weight -> TODO figure out piece defense... if it a real threat(aka queen attacking pawn)/equalvalue piece/can we trade it/can we just run?
-        #Move into attacked square HIGH negative weight
-
-        #Piece trader MEDIUM-HIGH weight (this one varies on piece values but in general we want to trade evenly if we can)
-        #Castle PLEEEASE MEDIUM-HIGH weight
-
-        #BIG COMPONENT - PIECE THEORY........
-        
-        
-        #bestMoveContainer.append(self.pickRandomMove(self.possibleMoves))
 
     def getFiveBestMoves(self):
         fiveBestMoves = []
@@ -110,15 +97,13 @@ class MoveFinder:
 
     def underAttack(self, curX:int, curY:int, piece: Piece) -> int:
         """ returns a positive bias if attacked else negative """
-        #print(f"Evluating Piece {piece} at ({curX}, {curY})")
         if isinstance(piece, Pawn): # dont really care about pawns being attacked
             return .5
         valueofPiece = piece.getValue()
         #piece is defended
-        if (curX, curY) in self.whiteAttackTiles and (curX, curY) in self.blackAttackTiles:
-            #print("isprotected returning ")
-            return valueofPiece - 2.5 # is defended. just check if its actuall important
-        #print(f"this is hanging time to run possibly if {(curX, curY) in self.blackAttackTiles}")
+        if (curX, curY) in self.whiteAttackTiles and (curX, curY) in self.blackAttackTiles: #TODO MUST FIX SO THAT CAN FIGURE OUT APPROPRIETE DANGER
+            return valueofPiece - 2 # is defended. just check if its actuall important
+        
         return valueofPiece if (curX, curY) in self.blackAttackTiles else 0
 
     def canTakePiece(self, x:int, y:int, piece: Piece) -> int:

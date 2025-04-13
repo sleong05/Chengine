@@ -74,7 +74,7 @@ class PieceTheorizer:
         diff = len(squaresSeenFromfuture) - len(squaresSeenFromCurrent )
         #max move gain is 7 and we want to return max a value of 1 for this weight but we are going to scale it down a bit because rooks moving isnt ideal and isnt so much
         #about seeing more since they are valuable
-        changeRating = diff/(7*2) #TODO this one is iffy lets take a look later
+        changeRating = diff/(7*3) #TODO this one is iffy lets take a look later
 
         notDevelopedRating = 0
         if not rook.hasMoved:
