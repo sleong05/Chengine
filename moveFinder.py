@@ -33,12 +33,12 @@ class MoveFinder:
 
     def getBestMove(self, bestMoveContainer: list) -> tuple[Piece, tuple[int, int]]: 
         """ LOAD DATA BEFORE"""
-        print(f"Finding move for team: {self.team}")
         # SIMULATE THINKGING #TODO REMOVE LATER
+        """
         i = 0
         while i < 20000000:
             i+=1
-
+        """
         self.weights = {}
         #assign weights
         for move in self.possibleMoves:

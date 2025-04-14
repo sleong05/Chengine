@@ -81,6 +81,7 @@ while not exit:
     
     # engine turn
     if board.isWhiteTurn() and not gameOver:
+        print("white turn")
         board.engineMove()
     pygame.display.update()
     # set FPS
