@@ -34,11 +34,11 @@ class MoveFinder:
     def getBestMove(self, bestMoveContainer: list) -> tuple[Piece, tuple[int, int]]: 
         """ LOAD DATA BEFORE"""
         # SIMULATE THINKGING #TODO REMOVE LATER
-        """
-        i = 0
-        while i < 20000000:
-            i+=1
-        """
+        if SHOWMOVES:
+            i = 0
+            while i < 5000000:
+                i+=1
+            
         self.weights = {}
         #assign weights
         for move in self.possibleMoves:
@@ -64,7 +64,7 @@ class MoveFinder:
     def getFiveBestMoves(self):
         fiveBestMoves = []
         for move in self.possibleMoves:
-            if len(fiveBestMoves) < 2:
+            if len(fiveBestMoves) < WIDTH:
                 fiveBestMoves.append(move)
             else:
                 worstMoveWeight = 99999999

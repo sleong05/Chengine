@@ -119,17 +119,18 @@ class PieceTheorizer:
         if not pawn.hasMoved:
             if self.team == WHITE:
             #checks for fianchetto pawn movement spot and if the bishop is still there
-                if (self.newX, self.newY) in (finachetto := {(1, 2), (6, 2)}) and (isinstance(self.board[self.oldX-1][self.oldY-1], Bishop) or isinstance(self.board[self.oldX+1][self.oldY-1], Bishop)):
-
-                    initialMoveValue += FIANCHETTO_VALUE
+                if (self.newX, self.newY) in (finachetto := {(1, 2), (6, 2)}):
+                    if ((self.oldX != 0 and isinstance(self.board[self.oldX-1][self.oldY-1], Bishop)) or (self.oldX != 7 and isinstance(self.board[self.oldX+1][self.oldY-1], Bishop))): # bishop is actulaly there
+                        initialMoveValue += FIANCHETTO_VALUE
                 elif (self.newX, self.newY) in (central := {(5, 3), (3, 3), (4, 3)}):
                     initialMoveValue += CENTRAL_PAWN_VALUE
                 elif (self.newX, self.newY) in (outside := {(0, 3), (7, 3)}):
                     initialMoveValue += SIDE_PAWN_VALUE
             else:
                 #checks for fianchetto pawn movement spot and if the bishop is still there
-                if (self.newX, self.newY) in (finachetto := {(1, 5), (6, 5)}) and (isinstance(self.board[self.oldX-1][self.oldY+1], Bishop) or isinstance(self.board[self.oldX+1][self.oldY+1], Bishop)):
-                    initialMoveValue += FIANCHETTO_VALUE
+                if (self.newX, self.newY) in (finachetto := {(1, 5), (6, 5)}):
+                    if ((self.oldX != 0 and isinstance(self.board[self.oldX-1][self.oldY+1], Bishop)) or (self.oldX != 7 and isinstance(self.board[self.oldX+1][self.oldY+1], Bishop))):
+                        initialMoveValue += FIANCHETTO_VALUE
                 elif (self.newX, self.newY) in (central := {(5, 4), (3, 4), (4, 4)}):
                     initialMoveValue += CENTRAL_PAWN_VALUE
                 elif (self.newX, self.newY) in (outside := {(0, 4), (7, 4)}):

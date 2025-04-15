@@ -9,7 +9,6 @@ pygame.init()
 
 #Display
 screen = pygame.display.set_mode((SCREEN_HEIGHT, SCREEN_WIDTH))
-
 # initilize board
 board = Board(screen)
 board.drawBoard()
@@ -78,7 +77,7 @@ while not exit:
             text = whiteWins if gameOver==-1 else blackWins
             screen.blit(text, textRect)
 
-    
+    pygame.display.update()
     # engine turn
     if board.isWhiteTurn() and not gameOver:
         print("white turn")

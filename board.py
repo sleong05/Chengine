@@ -90,10 +90,8 @@ class Board:
     def click(self, position: tuple[int, int], highlightSquares=True) -> int:
         X = position[0]//TILE_SIZE
         Y = position[1]//TILE_SIZE
-
         #clicked on a special move (castle, promotion, or enpassant)
         if (X, Y) in self.possibleSpecialMoveCircles:
-
             # dont spawn enter a move if the engine is thinking
             if self.engineThread != None and self.engineThread.is_alive():
                 return 0
@@ -114,6 +112,7 @@ class Board:
                 hasAMove = self.checkForMate(self.selectedPiece) 
                 if not hasAMove: #if not moves a player has won or tied 
                     return self.playersTurn
+                
             self.resetVariables()
             return 0
         # clicked on a movecircle
@@ -146,9 +145,7 @@ class Board:
                 self.drawRectAtSpot(X, Y, RED)
                 return 0
             self.drawRectAtSpot(X, Y, HIGHLIGHT)
-
         self.selectedPiece = piece
-
         #get possible moves and spawn circles on those squares
         self.spawnCirclesOnPossibleMoves(piece, highlightSquares)
         return 0
@@ -203,7 +200,6 @@ class Board:
         
         # checks for castling
         self.checkIfCanCastle(piece)
-        
         # check for en passant
 
         self.checkEnPassant(piece)
@@ -221,18 +217,16 @@ class Board:
             if (not piece.hasMoved):
                 x, y = piece.getPosition()
                 kingColor = piece.getColor()
-            
                 #rook exists and hasnt moved
                 attackedSquares = self.getAttackedTiles(kingColor*-1)
                 if (isinstance(self.content[0][y], Rook) and not self.content[0][y].hasMoved):
                     #king is not in check and no spots along the path of castling are in check
-                    tilesAlongCastlePathLong = [(x, y), (x-1, y), (x-2, y)]
-                    self.checkCastle(tilesAlongCastlePathLong, attackedSquares, x, y)
-                    
-                
-                if (isinstance(self.content[7][y], Rook) and not self.content[7][y].hasMoved):
-                    tilesAlongCastlePathShort = [(x, y), (x+1, y), (x+2, y)]
+                    tilesAlongCastlePathShort = [(x, y), (x-1, y), (x-2, y)]
                     self.checkCastle(tilesAlongCastlePathShort, attackedSquares, x, y)
+                    
+                if (isinstance(self.content[7][y], Rook) and not self.content[7][y].hasMoved):
+                    tilesAlongCastlePathLong = [(x, y), (x+1, y), (x+2, y)]
+                    self.checkCastle(tilesAlongCastlePathLong, attackedSquares, x, y)
 
     def checkEnPassant(self, piece):
         if isinstance(piece, Pawn) and self.pawnCanPassant != None:
@@ -415,20 +409,22 @@ class Board:
 
     def getMovesForEngine(self, team: int):
         allPossibleMoves = []
-        whitePieces = self.getPieces(team)
+        Pieces = self.getPieces(team)
 
-        for piece in whitePieces:
+        for piece in Pieces:
             allLegalMoves = self.getAllLegalMoves(piece)
             for legalMove in allLegalMoves:
                 allPossibleMoves.append((piece, legalMove))
 
         #check castling
 
-        x, y = self.whiteKing.getPosition() if team==WHITE else self.blackKing.getPosition()
+        x, y = self.whiteKing.getPosition() if team==BLACK else self.blackKing.getPosition()
+        self.resetVariables()
         self.click((x*TILE_SIZE, y*TILE_SIZE), highlightSquares=False)
         for move in self.possibleSpecialMoveCircles:
-            allPossibleMoves.append((self.whiteKing, move))
-        self.click((x*TILE_SIZE, y*TILE_SIZE), highlightSquares=False)
+            kingToAdd =  self.whiteKing if team==BLACK else self.blackKing
+            allPossibleMoves.append((kingToAdd, move))
+        self.resetVariables()
         return allPossibleMoves
 
     def doFirstMove(self) -> None:
@@ -451,7 +447,7 @@ class Board:
             return
         
         #TREE TIME
-        highestRankedMove = self.lookIntoFutureMoves(decidedMoves, 3, WHITE)
+        highestRankedMove = self.lookIntoFutureMoves(decidedMoves, DEPTH, BLACK)
         move, valuation = highestRankedMove
         print(f"Highest rank move is {move}")
         #once best move is found
@@ -460,6 +456,7 @@ class Board:
         oldX, oldY = piece.getPosition()
         #simulate move
         
+        self.resetVariables()
         self.click((oldX*TILE_SIZE, oldY*TILE_SIZE), highlightSquares=False)
         self.click((x*TILE_SIZE, y*TILE_SIZE), highlightSquares=False)
         self.resetVariables()
@@ -470,6 +467,7 @@ class Board:
         self.drawBoard()
         self.drawRectAtSpot(x, y, HIGHLIGHT_ENGINE)
         self.drawPieces()
+        
 
     def findMovesOfInterest(self, allPossibleMoves, player: int):
         decidedMoves = []
@@ -481,41 +479,87 @@ class Board:
         childrenValues = []
         if depth==0:
             for move in movesOfinterest:
-                childrenValues.append((move, self.staticEval()))
+                staticEval = self.staticEval()
+                childrenValues.append((move, staticEval))
+                oldX, oldY = move[0].getPosition()
+                self.printBranch(depth, move, player, staticEval, oldX, oldY)
         else:
             for move in movesOfinterest:
-                #data to remember
+                #data to remember for castling
                 castle = False
+                rookForCastling = None
+                rookHasMovedStatus = None
+                #normal data
                 piece, position = move
                 newX, newY = position
                 oldX, oldY = piece.getPosition()
                 pieceAtMove = self.content[newX][newY]
                 pieceHasMovedValue = piece.hasMoved
-                #do the move
-                self.click((oldX*TILE_SIZE, oldY*TILE_SIZE), highlightSquares=False)
-                self.click((newX*TILE_SIZE, newY*TILE_SIZE), highlightSquares=False)
-                self.drawBoard()
-                self.drawPieces()
+                #assing data if castling is the move for reversal
                 #check if move was a castle
                 if isinstance(piece, King) and abs(newX - oldX) == 2:
                     castle = True
-                    print("CASTLE ISSUE")
-                #lookinto future
-                interestingMoves = self.findMovesOfInterest(self.getMovesForEngine(player), player)
-                childrenValues.append((move, self.lookIntoFutureMoves(interestingMoves, depth-1, player*-1)[1]))
-                # undo move
-                if castle:
-                    pass
-                else:
-                    self.movePiece(oldX, oldY, piece)
-                    self.content[newX][newY] = pieceAtMove
-                    piece.hasMoved = pieceHasMovedValue
+                    if newX == 1: #short castle
+                        if player == BLACK:
+                            rookForCastling = self.content[0][7]
+                            rookHasMovedStatus = rookForCastling.hasMoved
+                        else: 
+                            rookForCastling = self.content[0][0]
+                            rookHasMovedStatus = rookForCastling.hasMoved
+                    elif newX == 5: #long castle
+                        if player == BLACK:
+                            rookForCastling = self.content[7][7]
+                            rookHasMovedStatus = rookForCastling.hasMoved
+                        else: 
+                            rookForCastling = self.content[7][0]
+                            rookHasMovedStatus = rookForCastling.hasMoved
+
+                self.resetVariables()
+                self.click((oldX*TILE_SIZE, oldY*TILE_SIZE), highlightSquares=False)
+                self.click((newX*TILE_SIZE, newY*TILE_SIZE), highlightSquares=False)
+                if SHOWMOVES:
                     self.drawBoard()
                     self.drawPieces()
+                    py.display.update()
+                
+                #lookinto future
+                interestingMoves = self.findMovesOfInterest(self.getMovesForEngine(player), player)
+                evaluation = self.lookIntoFutureMoves(interestingMoves, depth-1, player*-1)[1]
+                childrenValues.append((move, evaluation))
+                self.printBranch(depth, move, player, evaluation, oldX, oldY)
+                
+                # undo castle rook move
+                if castle:
+                    #detect which castle
+                    if newX == 1: #short castle
+                        if player == BLACK:
+                            self.movePiece(0, 7, rookForCastling)
+                            rookForCastling.hasMoved = rookHasMovedStatus
+                        else: 
+                            self.movePiece(0, 0, rookForCastling)
+                            rookForCastling.hasMoved = rookHasMovedStatus
+                    elif newX == 5: #long castle
+                       
+                        if player == BLACK:
+                            self.movePiece(7, 7, rookForCastling)
+                            rookForCastling.hasMoved = rookHasMovedStatus
+                        else: 
+                            self.movePiece(7, 0, rookForCastling)
+                            rookForCastling.hasMoved = rookHasMovedStatus
+                #move the piece back
+                self.movePiece(oldX, oldY, piece)
+                self.content[newX][newY] = pieceAtMove
+                piece.hasMoved = pieceHasMovedValue
+                if SHOWMOVES:
+                    self.drawBoard()
+                    self.drawPieces()
+                    py.display.update()
+                
         #min max values
         bestChoiceValue = 9999999 if player == BLACK else -9999999
         bestChild = None
 
+        
         for child in childrenValues:
             value = child[1]
             if player == WHITE:
@@ -526,8 +570,8 @@ class Board:
                 if bestChoiceValue > value:
                     bestChoiceValue = value
                     bestChild = child
-        print(f"Depth {depth}: best child :{bestChild}")
         return bestChild
+    
     def staticEval(self) -> int:
         score = 0
 
@@ -538,3 +582,19 @@ class Board:
         
         return score
     
+    def printBranch(self, depth: int, move: tuple[Piece, tuple[int, int]], player: int, evaluation: int, oldX, oldY) -> None:
+        piece, position = move
+        newX, newY = position
+
+        indent = "       " * (DEPTH-depth)
+        team = "White" if player == BLACK else "Black"
+        self.pieces = {
+            King: "King",
+            Bishop: "Bishop",
+            Rook: "Rook",
+            Knight: "Knight",
+            Pawn: "Pawn",
+            Queen: "Queen",
+        }
+        nameOfPiece = self.pieces[type(piece)]
+        print(f"{indent}{team}{nameOfPiece} at ({oldX}, {oldY}) to ({newX}, {newY}) -> {evaluation}")
