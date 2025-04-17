@@ -12,6 +12,7 @@ screen = pygame.display.set_mode((SCREEN_HEIGHT, SCREEN_WIDTH))
 # initilize board
 board = Board(screen)
 board.drawBoard()
+#board.initilizePieces()
 board.initilizePieces()
 board.drawPieces()
 pygame.display.flip()
@@ -81,7 +82,15 @@ while not exit:
     # engine turn
     if board.isWhiteTurn() and not gameOver:
         print("white turn")
-        board.engineMove()
+        playerMated = board.engineMove()
+        if playerMated != NO_PLAYER_MATED:
+            if playerMated == BLACK:
+                text = whiteWins
+            elif playerMated == WHITE:
+                text = blackWins
+            else:
+                text = draw
+            screen.blit(text, textRect)
     pygame.display.update()
     # set FPS
     clock.tick(60)

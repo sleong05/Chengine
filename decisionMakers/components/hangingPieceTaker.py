@@ -1,3 +1,4 @@
+from decisionMakers.weights import EQUALTRADE
 from pieces.piece import Piece
 
 
@@ -16,4 +17,6 @@ class pieceTrader:
         
         diff = enemyWorth - myWorth
 
+        if diff == 0:
+            return EQUALTRADE
         return diff

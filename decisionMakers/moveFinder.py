@@ -40,7 +40,7 @@ class MoveFinder:
         # SIMULATE THINKGING #TODO REMOVE LATER
         if SHOWMOVES:
             i = 0
-            while i < 10000000:
+            while i < SPEED * 10000000:
                 i+=1
             
         self.weights = {}
@@ -49,7 +49,7 @@ class MoveFinder:
             weight = self.evaluateMove(move)
             self.weights[move] = weight
 
-        fiveBestMoves = self.getFiveBestMoves()
+        fiveBestMoves = self.getBestMoveForEachPiece()
 
         for bestMove in fiveBestMoves:
             bestMoveContainer.append(bestMove)
@@ -70,11 +70,11 @@ class MoveFinder:
         score += pieceEvaluation
         return score
     
-    def getFiveBestMoves(self):
+    def getBestMoves(self):
         fiveBestMoves = []
         for move in self.possibleMoves:
             if len(fiveBestMoves) < WIDTH:
-                fiveBestMoves.append(move)
+                fiveBestMoves.insert(0, move)
             else:
                 worstMoveWeight = 99999999
                 worstMove = None
@@ -86,5 +86,32 @@ class MoveFinder:
 
                 if self.weights[worstMove] < self.weights[move]:
                     fiveBestMoves.remove(worstMove)
-                    fiveBestMoves.append(move)
+                    fiveBestMoves.insert(0, move)
         return fiveBestMoves
+    
+    def getBestMoveForEachPiece(self) -> dict[Piece: int]:
+        pieceValues = {}
+        pieceMoves = {}
+        for move in self.weights:
+            piece, position = move
+
+            if piece not in pieceValues:
+                pieceMoves[piece] = move
+                pieceValues[piece] = self.weights[move]
+
+            else:
+                if pieceValues[piece] < self.weights[move]:
+                    pieceMoves[piece] = move
+                    pieceValues[piece] = self.weights[move]
+
+        #sort dic
+        sortedPieceValues = {k: v for k, v in sorted(pieceValues.items(), key=lambda item: item[1], reverse=True)}
+        width = 0
+        bestMoves = []
+        for piece in sortedPieceValues: 
+            if width == WIDTH:
+                break
+
+            bestMoves.append(pieceMoves[piece])
+            width += 1
+        return bestMoves

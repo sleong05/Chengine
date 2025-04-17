@@ -17,6 +17,8 @@ class PieceTheorizer:
         self.newX = None
         self.newY = None
         self.board = None
+        self.myKing = None
+        self.team = None
 
     def evaluatePiece(self, piece: Piece, newX:int, newY:int, oldX:int, oldY:int, board: list[list[int|Piece]]) -> int:
         self.newX = newX
@@ -25,12 +27,20 @@ class PieceTheorizer:
         self.oldY = oldY
         self.board = board
         self.team = piece.getColor()
-    
+        if isinstance(piece, Pawn): # additional data is needed for pawn
+            self.myKing = self.getMyKing(piece.getColor())
 
+        
         handler = self.piece_actions.get(type(piece))
         score = handler(piece)
         return score
 
+    def getMyKing(self, team):
+        for row in self.board:
+            for tile in row:
+                if isinstance(tile, King) and team == tile.getColor():
+                    return tile
+                
     def handle_king(self, king: King) -> int:
         #logic for king
 
@@ -54,7 +64,7 @@ class PieceTheorizer:
         fianchettoRating = 0
         if self.team == WHITE:
             if (self.newX, self.newY) == (1, 1) or (self.newX, self.newY) == (6, 1):
-                fianchettoRating += FIANCHETTO_VALUE
+                fianchettoRating += FIANCHETTO_VALUE_BISHOP
 
             #usual bishop development locations (discourages blocking pawns as well)
             standardSpotRating = 0
@@ -68,7 +78,7 @@ class PieceTheorizer:
                 notDevelopedRating += BISHOP_NOT_MOVED
         else:
             if (self.newX, self.newY) == (1, 6) or (self.newX, self.newY) == (6, 6):
-                fianchettoRating += FIANCHETTO_VALUE
+                fianchettoRating += FIANCHETTO_VALUE_BISHOP
 
             #usual bishop development locations (discourages blocking pawns as well)
             standardSpotRating = 0
@@ -91,7 +101,7 @@ class PieceTheorizer:
         diff = len(squaresSeenFromfuture) - len(squaresSeenFromCurrent )
         #max move gain is 7 and we want to return max a value of 1 for this weight but we are going to scale it down a bit because rooks moving isnt ideal and isnt so much
         #about seeing more since they are valuable
-        changeRating = diff/(7*3) #TODO this one is iffy lets take a look later
+        changeRating = diff/(7*4) #TODO this one is iffy lets take a look later
 
         notDevelopedRating = 0
         if not rook.hasMoved:
@@ -121,7 +131,7 @@ class PieceTheorizer:
             #checks for fianchetto pawn movement spot and if the bishop is still there
                 if (self.newX, self.newY) in (finachetto := {(1, 2), (6, 2)}):
                     if ((self.oldX != 0 and isinstance(self.board[self.oldX-1][self.oldY-1], Bishop)) or (self.oldX != 7 and isinstance(self.board[self.oldX+1][self.oldY-1], Bishop))): # bishop is actulaly there
-                        initialMoveValue += FIANCHETTO_VALUE
+                        initialMoveValue += FIANCHETTO_VALUE_PAWN
                 elif (self.newX, self.newY) in (central := {(5, 3), (3, 3), (4, 3)}):
                     initialMoveValue += CENTRAL_PAWN_VALUE
                 elif (self.newX, self.newY) in (outside := {(0, 3), (7, 3)}):
@@ -130,28 +140,38 @@ class PieceTheorizer:
                 #checks for fianchetto pawn movement spot and if the bishop is still there
                 if (self.newX, self.newY) in (finachetto := {(1, 5), (6, 5)}):
                     if ((self.oldX != 0 and isinstance(self.board[self.oldX-1][self.oldY+1], Bishop)) or (self.oldX != 7 and isinstance(self.board[self.oldX+1][self.oldY+1], Bishop))):
-                        initialMoveValue += FIANCHETTO_VALUE
+                        initialMoveValue += FIANCHETTO_VALUE_PAWN
                 elif (self.newX, self.newY) in (central := {(5, 4), (3, 4), (4, 4)}):
                     initialMoveValue += CENTRAL_PAWN_VALUE
                 elif (self.newX, self.newY) in (outside := {(0, 4), (7, 4)}):
                     initialMoveValue += SIDE_PAWN_VALUE
 
+        #pawn near king dont move
+        nearKingValue = 0
+        kingX, kingY = self.myKing.getPosition()
+        if self.oldX in range(kingX-1, kingX+2) and self.oldY in range(kingY+self.myKing.getColor(), kingY+self.myKing.getColor()*3):
+            nearKingValue = PAWN_NEAR_KING
 
         #if i can make a chain of defensive pawns
-        if self.team == WHITE:
-            spot1 = (self.newX+1, self.newY+1)
-            spot2 = (self.newX-1, self.newY+1)
-        else:
-            spot1 = (self.newX+1, self.newY-1)
-            spot2 = (self.newX-1, self.newY-1)
+        spot1 = (self.newX+1, self.newY+self.team)
+        spot2 = (self.newX-1, self.newY+self.team)
         x1, y1 = spot1
         x2, y2 = spot2
-
+        #sees a pawn
         if x1 in range(8) and y1 in range(8) and isinstance(self.board[x1][y1], Pawn) and self.board[x1][y1].getColor() == pawn.getColor():
             pawnChainValue += PAWN_CHAIN_VALUE
         if x2 in range(8) and y2 in range(8) and isinstance(self.board[x2][y2], Pawn) and self.board[x2][y2].getColor() == pawn.getColor():
             pawnChainValue += PAWN_CHAIN_VALUE
-        
+        # is seen by a pawn
+        spot1 = (self.newX+1, self.newY-self.team)
+        spot2 = (self.newX-1, self.newY-self.team)
+        x1, y1 = spot1
+        x2, y2 = spot2
+        #sees a pawn
+        if x1 in range(8) and y1 in range(8) and isinstance(self.board[x1][y1], Pawn) and self.board[x1][y1].getColor() == pawn.getColor():
+            pawnChainValue += PAWN_CHAIN_VALUE
+        if x2 in range(8) and y2 in range(8) and isinstance(self.board[x2][y2], Pawn) and self.board[x2][y2].getColor() == pawn.getColor():
+            pawnChainValue += PAWN_CHAIN_VALUE
         #check if its a passed pawn
         passedPawn = True
         passedPawnValue = 0
@@ -186,7 +206,7 @@ class PieceTheorizer:
         promotionValue = 0
         if self.newY == 7:
             promotionValue += PAWN_PROMOTION
-        return initialMoveValue + pawnChainValue + passedPawnValue + promotionValue + SLIGHT_PAWN_VALUE
+        return initialMoveValue + pawnChainValue + passedPawnValue + promotionValue + SLIGHT_PAWN_VALUE + nearKingValue
 
     def handle_queen(self, queen):
         #TODO figure out what maeks queen moves good. it seems to respond ok so far
