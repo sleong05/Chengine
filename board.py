@@ -4,7 +4,7 @@ from constants import *
 import pygame as py
 from pieces import *
 from typing import List
-from moveFinder import MoveFinder
+from decisionMakers.moveFinder import MoveFinder
 
 class Board:
     def __init__(self, screen: py.display) -> None:
@@ -17,10 +17,10 @@ class Board:
         self.blackKing = King(self.screen, BLACK, (3, 7), self.content)
         self.playersTurn = WHITE
         # load potential piece icon
-        circleImage = py.image.load("Chengine/pieceIcons/potentialMove.png").convert_alpha()
+        circleImage = py.image.load("pieces/pieceIcons/potentialMove.png").convert_alpha()
         self.potentialMoveImage = py.transform.scale(circleImage, (TILE_SIZE, TILE_SIZE))
         # load special move icons
-        circleImage = py.image.load("Chengine/pieceIcons/potentialSpecialMove.png").convert_alpha()
+        circleImage = py.image.load("pieces/pieceIcons/potentialSpecialMove.png").convert_alpha()
         self.potentialSpecialMoveImage = py.transform.scale(circleImage, (TILE_SIZE, TILE_SIZE))
         # for en passant
         self.pawnCanPassant = None
@@ -420,7 +420,7 @@ class Board:
         self.resetVariables()
         self.click((x*TILE_SIZE, y*TILE_SIZE), highlightSquares=False)
         for move in self.possibleSpecialMoveCircles:
-            kingToAdd =  self.whiteKing if team==WHITE else self.blackKing
+            kingToAdd = self.whiteKing if team==WHITE else self.blackKing
             allPossibleMoves.append((kingToAdd, move))
         self.resetVariables()
         return allPossibleMoves
@@ -469,7 +469,7 @@ class Board:
 
     def findMovesOfInterest(self, allPossibleMoves, player: int):
         decidedMoves = []
-        self.moveFinder.feedData(self.content, player, allPossibleMoves, self.getAttackedTiles(WHITE),self.getAttackedTiles(BLACK))
+        self.moveFinder.feedData(self.content, player, allPossibleMoves, self.getAttackedTiles(WHITE),self.getAttackedTiles(BLACK), self.getMovesForEngine(player*-1))
         self.moveFinder.getBestMove(decidedMoves)
         return decidedMoves
     

@@ -1,6 +1,6 @@
 from constants import *
 from pieces import *
-from weights import *
+from ..weights import *
 
 class PieceTheorizer:
     def __init__(self):
